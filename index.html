@@ -1,751 +1,1289 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scan KTP → Excel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js"></script>
-<style>
-  :root{
-    --bg: #0B1220;
-    --panel: #121B2E;
-    --panel-2: #182338;
-    --line: #263251;
-    --line-strong: #34456B;
-    --text: #E8ECF3;
-    --text-dim: #8B93A7;
-    --text-faint: #4A5473;
-    --cyan: #22D3EE;
-    --cyan-dim: #0E7490;
-    --amber: #F5A623;
-    --amber-bg: #2E2410;
-    --red: #F5624A;
-    --green: #34D399;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
-    padding:40px 20px 80px;
-  }
-  .wrap{max-width:980px; margin:0 auto;}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan KTP → Excel (Enhanced OCR)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js">
+    </script>
+    <style>
+        :root {
+            --bg: #0B1220;
+            --panel: #121B2E;
+            --panel-2: #182338;
+            --line: #263251;
+            --line-strong: #34456B;
+            --text: #E8ECF3;
+            --text-dim: #8B93A7;
+            --text-faint: #4A5473;
+            --cyan: #22D3EE;
+            --cyan-dim: #0E7490;
+            --amber: #F5A623;
+            --amber-bg: #2E2410;
+            --red: #F5624A;
+            --green: #34D399;
+            --mono: 'IBM Plex Mono', monospace;
+            --sans: 'IBM Plex Sans', sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            padding: 40px 20px 80px;
+        }
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
 
-  .hero{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:36px; flex-wrap:wrap;}
-  .hero h1{font-size:28px; font-weight:600; margin:0 0 6px; letter-spacing:-0.01em;}
-  .hero p{color:var(--text-dim); font-size:14.5px; margin:0; max-width:520px; line-height:1.6;}
-  .badge-privacy{
-    display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px;
-    color:var(--green); border:1px solid #1F5C48; background:#0E2018; padding:8px 14px;
-    border-radius:8px; white-space:nowrap;
-  }
-  .badge-privacy .dot{width:6px; height:6px; border-radius:50%; background:var(--green); flex:none;}
+        .hero {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+        }
+        .hero h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 6px;
+            letter-spacing: -0.01em;
+        }
+        .hero p {
+            color: var(--text-dim);
+            font-size: 14.5px;
+            margin: 0;
+            max-width: 520px;
+            line-height: 1.6;
+        }
+        .badge-privacy {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--green);
+            border: 1px solid #1F5C48;
+            background: #0E2018;
+            padding: 8px 14px;
+            border-radius: 8px;
+            white-space: nowrap;
+        }
+        .badge-privacy .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            flex: none;
+        }
 
-  .dropzone{
-    border:1.5px dashed var(--line-strong); border-radius:12px; padding:44px 24px;
-    text-align:center; cursor:pointer; transition:border-color .15s, background .15s;
-    background:var(--panel);
-  }
-  .dropzone:hover, .dropzone.drag{border-color:var(--cyan); background:var(--panel-2);}
-  .dropzone svg{margin-bottom:10px; opacity:.7;}
-  .dropzone .main{font-size:15px; font-weight:500; margin-bottom:4px;}
-  .dropzone .sub{font-size:13px; color:var(--text-dim);}
-  input[type=file]{display:none;}
+        .dropzone {
+            border: 1.5px dashed var(--line-strong);
+            border-radius: 12px;
+            padding: 44px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+            background: var(--panel);
+        }
+        .dropzone:hover,
+        .dropzone.drag {
+            border-color: var(--cyan);
+            background: var(--panel-2);
+        }
+        .dropzone svg {
+            margin-bottom: 10px;
+            opacity: .7;
+        }
+        .dropzone .main {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .dropzone .sub {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        input[type=file] {
+            display: none;
+        }
 
-  .controls{display:flex; align-items:center; justify-content:space-between; margin:22px 0 14px; gap:12px; flex-wrap:wrap;}
-  .stats{display:flex; gap:18px; font-family:var(--mono); font-size:12.5px; color:var(--text-dim);}
-  .stats b{color:var(--text); font-weight:600;}
-  .stats .flag{color:var(--amber);}
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 22px 0 14px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .stats {
+            display: flex;
+            gap: 18px;
+            font-family: var(--mono);
+            font-size: 12.5px;
+            color: var(--text-dim);
+        }
+        .stats b {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .stats .flag {
+            color: var(--amber);
+        }
 
-  button{
-    font-family:var(--sans); font-size:13.5px; font-weight:500; border-radius:8px;
-    padding:10px 18px; cursor:pointer; border:1px solid var(--line-strong);
-    background:var(--panel-2); color:var(--text); transition:all .12s;
-  }
-  button:hover{border-color:var(--cyan); color:var(--cyan);}
-  button:disabled{opacity:.4; cursor:not-allowed;}
-  button.primary{background:var(--cyan); color:#04222A; border-color:var(--cyan); font-weight:600;}
-  button.primary:hover{background:#4DE0F5; color:#04222A;}
+        button {
+            font-family: var(--sans);
+            font-size: 13.5px;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 10px 18px;
+            cursor: pointer;
+            border: 1px solid var(--line-strong);
+            background: var(--panel-2);
+            color: var(--text);
+            transition: all .12s;
+        }
+        button:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+        button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+        button.primary {
+            background: var(--cyan);
+            color: #04222A;
+            border-color: var(--cyan);
+            font-weight: 600;
+        }
+        button.primary:hover {
+            background: #4DE0F5;
+            color: #04222A;
+        }
 
-  .grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; margin-bottom:28px;
-  }
-  .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
-    position:relative;
-  }
-  .card .thumb{width:100%; aspect-ratio:1.586; object-fit:cover; display:block; background:#0a0f1a;}
-  .card .scanline{
-    position:absolute; left:0; right:0; height:2px; background:var(--cyan); box-shadow:0 0 8px 2px var(--cyan);
-    top:0; opacity:0; pointer-events:none;
-  }
-  .card.processing .scanline{opacity:1; animation:scan 1.4s linear infinite;}
-  @keyframes scan{0%{top:0;} 100%{top:100%;}}
-  .card .meta{padding:8px 10px 10px;}
-  .card .fname{font-size:11px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:5px;}
-  .status-pill{
-    display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10.5px;
-    padding:3px 8px; border-radius:20px; font-weight:500;
-  }
-  .status-pill.queued{background:#1c2438; color:var(--text-dim);}
-  .status-pill.processing{background:#0E3A46; color:var(--cyan);}
-  .status-pill.ok{background:#123527; color:var(--green);}
-  .status-pill.review{background:var(--amber-bg); color:var(--amber);}
-  .status-pill.error{background:#3A1414; color:var(--red);}
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .card .thumb {
+            width: 100%;
+            aspect-ratio: 1.586;
+            object-fit: cover;
+            display: block;
+            background: #0a0f1a;
+        }
+        .card .scanline {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--cyan);
+            box-shadow: 0 0 8px 2px var(--cyan);
+            top: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .card.processing .scanline {
+            opacity: 1;
+            animation: scan 1.4s linear infinite;
+        }
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+            100% {
+                top: 100%;
+            }
+        }
+        .card .meta {
+            padding: 8px 10px 10px;
+        }
+        .card .fname {
+            font-size: 11px;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--mono);
+            font-size: 10.5px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .status-pill.queued {
+            background: #1c2438;
+            color: var(--text-dim);
+        }
+        .status-pill.processing {
+            background: #0E3A46;
+            color: var(--cyan);
+        }
+        .status-pill.ok {
+            background: #123527;
+            color: var(--green);
+        }
+        .status-pill.review {
+            background: var(--amber-bg);
+            color: var(--amber);
+        }
+        .status-pill.error {
+            background: #3A1414;
+            color: var(--red);
+        }
 
-  table{width:100%; border-collapse:collapse; font-size:13px; background:var(--panel); border-radius:10px; overflow:hidden;}
-  thead th{
-    text-align:left; font-family:var(--mono); font-size:11px; font-weight:500; color:var(--text-dim);
-    text-transform:uppercase; letter-spacing:.04em; padding:10px 12px; border-bottom:1px solid var(--line-strong);
-    background:var(--panel-2); position:sticky; top:0;
-  }
-  tbody td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
-  tbody tr.review td{background:rgba(245,166,35,0.06);}
-  tbody tr:last-child td{border-bottom:none;}
-  .nik{font-family:var(--mono); letter-spacing:.02em;}
-  .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: var(--panel);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        thead th {
+            text-align: left;
+            font-family: var(--mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line-strong);
+            background: var(--panel-2);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+            font-size: 12.5px;
+        }
+        tbody tr.review td {
+            background: rgba(245, 166, 35, 0.06);
+        }
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .nik {
+            font-family: var(--mono);
+            letter-spacing: .02em;
+            font-size: 12px;
+        }
 
-  .empty{color:var(--text-faint); text-align:center; padding:30px; font-size:13.5px;}
-  footer{margin-top:40px; text-align:center; color:var(--text-faint); font-size:12px; font-family:var(--mono);}
-</style>
+        .empty {
+            color: var(--text-faint);
+            text-align: center;
+            padding: 30px;
+            font-size: 13.5px;
+        }
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 12px;
+            font-family: var(--mono);
+        }
+
+        /* mini preview overlay */
+        .thumb-wrap {
+            position: relative;
+            overflow: hidden;
+        }
+        .thumb-wrap .badge-preview {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--text-dim);
+            font-family: var(--mono);
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--line);
+            pointer-events: none;
+        }
+        .card .thumb {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1.586;
+            object-fit: cover;
+            background: #0a0f1a;
+        }
+
+        .debug-toggle {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-faint);
+            cursor: pointer;
+            padding: 4px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: transparent;
+            transition: 0.1s;
+        }
+        .debug-toggle:hover {
+            color: var(--text-dim);
+            border-color: var(--line-strong);
+        }
+
+        .preview-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+        .preview-overlay.active {
+            display: flex;
+        }
+        .preview-overlay .inner {
+            max-width: 90vw;
+            max-height: 90vh;
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--line-strong);
+            overflow: auto;
+            position: relative;
+        }
+        .preview-overlay .inner .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 16px;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-dim);
+            background: none;
+            border: none;
+            font-family: var(--sans);
+        }
+        .preview-overlay .inner .close-btn:hover {
+            color: var(--text);
+        }
+        .preview-overlay .inner img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 6px;
+            border: 1px solid var(--line);
+        }
+        .preview-overlay .inner .caption {
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-dim);
+            font-family: var(--mono);
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                flex-direction: column;
+            }
+            .badge-privacy {
+                white-space: normal;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .stats {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
+    <div class="wrap">
 
-  <div class="hero">
-    <div>
-      <h1>Scan KTP → Excel</h1>
-      <p>Unggah banyak foto KTP sekaligus — miring, buram, hitam-putih, atau berwarna. Semua diproses langsung di browser dan hasilnya bisa diunduh sebagai file Excel.</p>
+        <div class="hero">
+            <div>
+                <h1>Scan KTP → Excel</h1>
+                <p>Unggah banyak foto KTP sekaligus — miring, buram, hitam-putih, atau berwarna. Semua diproses langsung di browser dan hasilnya bisa diunduh sebagai file Excel.</p>
+            </div>
+            <div class="badge-privacy"><span class="dot"></span>Semua proses lokal di browser — tidak ada gambar yang diunggah ke server</div>
+        </div>
+
+        <div id="engineStatus" style="font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-bottom: 16px; padding: 8px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;">
+            Menyiapkan mesin deteksi kartu + OCR (sekali di awal, ±5–15 detik)...
+        </div>
+
+        <label class="dropzone" id="dropzone" for="fileInput">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8B93A7" stroke-width="1.6"><path d="M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5M7 9l5-5 5 5M12 4v13"/></svg>
+            <div class="main">Klik untuk pilih foto KTP, atau seret ke sini</div>
+            <div class="sub">Bisa pilih banyak file sekaligus — jpg, jpeg, png</div>
+            <input type="file" id="fileInput" accept="image/*" multiple>
+        </label>
+
+        <div class="controls">
+            <div class="stats">
+                <span>Total: <b id="statTotal">0</b></span>
+                <span>Selesai: <b id="statDone">0</b></span>
+                <span class="flag">Perlu cek: <b id="statReview">0</b></span>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button id="btnProcess" disabled>Mulai scan semua</button>
+                <button id="btnExport" class="primary" disabled>Unduh Excel</button>
+            </div>
+        </div>
+
+        <div class="grid" id="grid"></div>
+
+        <div class="table-wrap">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>NIK</th>
+                        <th>Nama</th>
+                        <th>Tempat/Tgl Lahir</th>
+                        <th>Jenis Kelamin</th>
+                        <th>Alamat</th>
+                        <th>Kecamatan</th>
+                        <th>Perlu Cek</th>
+                        <th>Kartu Terdeteksi</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+            <div class="empty" id="emptyMsg">Belum ada hasil. Unggah foto KTP lalu klik "Mulai scan semua".</div>
+        </div>
+
+        <footer>OCR berjalan sepenuhnya di perangkatmu memakai Tesseract.js — tidak ada data yang dikirim ke server manapun.</footer>
     </div>
-    <div class="badge-privacy"><span class="dot"></span>Semua proses lokal di browser — tidak ada gambar yang diunggah ke server</div>
-  </div>
 
-  <div id="engineStatus" style="font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-bottom: 16px; padding: 8px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;">
-    Menyiapkan mesin deteksi kartu + OCR (sekali di awal, ±5–15 detik)...
-  </div>
-
-  <label class="dropzone" id="dropzone" for="fileInput">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#8B93A7" stroke-width="1.6"><path d="M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5M7 9l5-5 5 5M12 4v13"/></svg>
-    <div class="main">Klik untuk pilih foto KTP, atau seret ke sini</div>
-    <div class="sub">Bisa pilih banyak file sekaligus — jpg, jpeg, png</div>
-    <input type="file" id="fileInput" accept="image/*" multiple>
-  </label>
-
-  <div class="controls">
-    <div class="stats">
-      <span>Total: <b id="statTotal">0</b></span>
-      <span>Selesai: <b id="statDone">0</b></span>
-      <span class="flag">Perlu cek: <b id="statReview">0</b></span>
+    <!-- Preview overlay -->
+    <div class="preview-overlay" id="previewOverlay">
+        <div class="inner">
+            <button class="close-btn" id="previewClose">&times;</button>
+            <img id="previewImg" src="" alt="Preview">
+            <div class="caption" id="previewCaption"></div>
+        </div>
     </div>
-    <div style="display:flex; gap:10px;">
-      <button id="btnProcess" disabled>Mulai scan semua</button>
-      <button id="btnExport" class="primary" disabled>Unduh Excel</button>
-    </div>
-  </div>
 
-  <div class="grid" id="grid"></div>
+    <script>
+        (function() {
 
-  <div class="table-wrap">
-    <table id="resultsTable">
-      <thead>
-        <tr>
-          <th>File</th><th>NIK</th><th>Nama</th><th>Tempat/Tgl Lahir</th><th>Jenis Kelamin</th>
-          <th>Alamat</th><th>Kecamatan</th><th>Perlu Cek</th><th>Kartu Terdeteksi</th>
-        </tr>
-      </thead>
-      <tbody id="resultsBody"></tbody>
-    </table>
-    <div class="empty" id="emptyMsg">Belum ada hasil. Unggah foto KTP lalu klik "Mulai scan semua".</div>
-  </div>
+            var items = [];
+            var worker = null;
+            var cvReady = false;
 
-  <footer>OCR berjalan sepenuhnya di perangkatmu memakai Tesseract.js — tidak ada data yang dikirim ke server manapun.</footer>
-</div>
+            var dropzone = document.getElementById('dropzone');
+            var fileInput = document.getElementById('fileInput');
+            var grid = document.getElementById('grid');
+            var btnProcess = document.getElementById('btnProcess');
+            var btnExport = document.getElementById('btnExport');
+            var statTotal = document.getElementById('statTotal');
+            var statDone = document.getElementById('statDone');
+            var statReview = document.getElementById('statReview');
+            var resultsBody = document.getElementById('resultsBody');
+            var emptyMsg = document.getElementById('emptyMsg');
+            var engineStatusEl = document.getElementById('engineStatus');
+            var previewOverlay = document.getElementById('previewOverlay');
+            var previewImg = document.getElementById('previewImg');
+            var previewCaption = document.getElementById('previewCaption');
+            var previewClose = document.getElementById('previewClose');
 
-<script>
-(function(){
+            previewClose.addEventListener('click', function() {
+                previewOverlay.classList.remove('active');
+            });
+            previewOverlay.addEventListener('click', function(e) {
+                if (e.target === previewOverlay) previewOverlay.classList.remove('active');
+            });
 
-  var items = [];
-  var worker = null;
-
-  var dropzone = document.getElementById('dropzone');
-  var fileInput = document.getElementById('fileInput');
-  var grid = document.getElementById('grid');
-  var btnProcess = document.getElementById('btnProcess');
-  var btnExport = document.getElementById('btnExport');
-  var statTotal = document.getElementById('statTotal');
-  var statDone = document.getElementById('statDone');
-  var statReview = document.getElementById('statReview');
-  var resultsBody = document.getElementById('resultsBody');
-  var emptyMsg = document.getElementById('emptyMsg');
-
-  ['dragenter','dragover'].forEach(function(ev){
-    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
-  });
-  ['dragleave','drop'].forEach(function(ev){
-    dropzone.addEventListener(ev, function(e){ e.preventDefault(); dropzone.classList.remove('drag'); });
-  });
-  dropzone.addEventListener('drop', function(e){
-    var files = Array.prototype.slice.call(e.dataTransfer.files).filter(function(f){ return f.type.indexOf('image/') === 0; });
-    addFiles(files);
-  });
-  fileInput.addEventListener('change', function(e){
-    addFiles(Array.prototype.slice.call(e.target.files));
-    fileInput.value = '';
-  });
-
-  function addFiles(files){
-    files.forEach(function(file){
-      var id = 'f' + Date.now() + Math.random().toString(36).slice(2,7);
-      var url = URL.createObjectURL(file);
-      var item = { id:id, file:file, url:url, status:'queued', result:null };
-      items.push(item);
-      renderCard(item);
-    });
-    updateStats();
-    btnProcess.disabled = items.length === 0;
-  }
-
-  function renderCard(item){
-    var card = document.createElement('div');
-    card.className = 'card';
-    card.id = 'card-' + item.id;
-    card.innerHTML =
-      '<div class="scanline"></div>' +
-      '<img class="thumb" src="' + item.url + '">' +
-      '<div class="meta">' +
-        '<div class="fname" title="' + item.file.name + '">' + item.file.name + '</div>' +
-        '<span class="status-pill queued" id="pill-' + item.id + '">menunggu</span>' +
-      '</div>';
-    grid.appendChild(card);
-  }
-
-  function setStatus(item, status, label){
-    item.status = status;
-    var card = document.getElementById('card-' + item.id);
-    var pill = document.getElementById('pill-' + item.id);
-    card.classList.remove('processing');
-    if (status === 'processing') card.classList.add('processing');
-    pill.className = 'status-pill ' + status;
-    pill.textContent = label;
-  }
-
-  function updateStats(){
-    statTotal.textContent = items.length;
-    statDone.textContent = items.filter(function(i){ return i.status==='ok' || i.status==='review' || i.status==='error'; }).length;
-    statReview.textContent = items.filter(function(i){ return i.status==='review' || i.status==='error'; }).length;
-    btnExport.disabled = items.filter(function(i){ return i.result; }).length === 0;
-  }
-
-  // ---------- OpenCV.js loading ----------
-
-  var cvReadyPromise = null;
-  function ensureCv(){
-    if (cvReadyPromise) return cvReadyPromise;
-    cvReadyPromise = new Promise(function(resolve){
-      function check(){
-        if (typeof cv !== 'undefined' && cv && typeof cv.then === 'function'){
-          cv.then(function(resolved){ window.cv = resolved; resolve(); });
-        } else if (typeof cv !== 'undefined' && cv && cv.Mat){
-          resolve();
-        } else if (typeof cv !== 'undefined' && cv){
-          cv['onRuntimeInitialized'] = resolve;
-        } else {
-          setTimeout(check, 150);
-        }
-      }
-      check();
-    });
-    return cvReadyPromise;
-  }
-
-  // ---------- Deteksi kartu + koreksi perspektif (OpenCV.js) ----------
-
-  function orderCorners(pts){
-    pts = pts.slice().sort(function(a,b){ return a.y - b.y; });
-    var top = pts.slice(0,2).sort(function(a,b){ return a.x - b.x; });
-    var bottom = pts.slice(2,4).sort(function(a,b){ return a.x - b.x; });
-    return { tl: top[0], tr: top[1], bl: bottom[0], br: bottom[1] };
-  }
-
-  function detectAndWarpCard(canvas){
-    var src = cv.imread(canvas);
-    var maxDim = 900;
-    var scale = Math.min(1, maxDim / Math.max(src.rows, src.cols));
-    var resized = new cv.Mat();
-    cv.resize(src, resized, new cv.Size(Math.round(src.cols*scale), Math.round(src.rows*scale)));
-
-    var gray = new cv.Mat();
-    cv.cvtColor(resized, gray, cv.COLOR_RGBA2GRAY);
-    var blurred = new cv.Mat();
-    cv.GaussianBlur(gray, blurred, new cv.Size(5,5), 0);
-    var edged = new cv.Mat();
-    cv.Canny(blurred, edged, 40, 120);
-    var kernel = cv.Mat.ones(3,3, cv.CV_8U);
-    var dilated = new cv.Mat();
-    cv.dilate(edged, dilated, kernel, new cv.Point(-1,-1), 1);
-
-    var contours = new cv.MatVector();
-    var hierarchy = new cv.Mat();
-    cv.findContours(dilated, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-
-    var bestQuad = null;
-    var bestArea = 0;
-    var imgArea = resized.rows * resized.cols;
-
-    for (var i=0; i<contours.size(); i++){
-      var cnt = contours.get(i);
-      var peri = cv.arcLength(cnt, true);
-      var approx = new cv.Mat();
-      cv.approxPolyDP(cnt, approx, 0.02*peri, true);
-      if (approx.rows === 4 && cv.isContourConvex(approx)){
-        var area = Math.abs(cv.contourArea(approx));
-        if (area > bestArea && area > imgArea*0.15){
-          bestArea = area;
-          if (bestQuad) bestQuad.delete();
-          bestQuad = approx;
-        } else {
-          approx.delete();
-        }
-      } else {
-        approx.delete();
-      }
-      cnt.delete();
-    }
-
-    var outCanvas = null;
-    if (bestQuad){
-      var pts = [];
-      for (var j=0;j<4;j++){
-        pts.push({
-          x: bestQuad.data32S[j*2] / scale,
-          y: bestQuad.data32S[j*2+1] / scale
-        });
-      }
-      var ordered = orderCorners(pts);
-      var outW = 1013, outH = 638;
-      var srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        ordered.tl.x, ordered.tl.y,
-        ordered.tr.x, ordered.tr.y,
-        ordered.br.x, ordered.br.y,
-        ordered.bl.x, ordered.bl.y
-      ]);
-      var dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-        0,0, outW,0, outW,outH, 0,outH
-      ]);
-      var M = cv.getPerspectiveTransform(srcTri, dstTri);
-      var warped = new cv.Mat();
-      cv.warpPerspective(src, warped, M, new cv.Size(outW, outH));
-      outCanvas = document.createElement('canvas');
-      outCanvas.width = outW; outCanvas.height = outH;
-      cv.imshow(outCanvas, warped);
-      srcTri.delete(); dstTri.delete(); M.delete(); warped.delete();
-      bestQuad.delete();
-    }
-
-    src.delete(); resized.delete(); gray.delete(); blurred.delete();
-    edged.delete(); dilated.delete(); kernel.delete();
-    contours.delete(); hierarchy.delete();
-
-    return outCanvas;
-  }
-
-  // ---------- Preprocessing (canvas) ----------
-
-  function loadImageToCanvas(url){
-    return new Promise(function(resolve){
-      var img = new Image();
-      img.onload = function(){
-        var canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        resolve(canvas);
-      };
-      img.src = url;
-    });
-  }
-
-  function toGrayscaleCanvas(srcCanvas){
-    var w = srcCanvas.width, h = srcCanvas.height;
-    var canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(srcCanvas, 0, 0);
-    var data = ctx.getImageData(0, 0, w, h);
-    var d = data.data;
-    for (var i=0; i<d.length; i+=4){
-      var v = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-      d[i]=d[i+1]=d[i+2]=v;
-    }
-    ctx.putImageData(data, 0, 0);
-    return canvas;
-  }
-
-  function otsuThreshold(canvas){
-    var ctx = canvas.getContext('2d');
-    var data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
-    var hist = new Array(256).fill(0);
-    var total = 0;
-    for (var i=0;i<data.length;i+=4){ hist[data[i]|0]++; total++; }
-    var sum = 0;
-    for (var t=0;t<256;t++) sum += t*hist[t];
-    var sumB=0, wB=0, wF=0, varMax=0, threshold=128;
-    for (var t2=0;t2<256;t2++){
-      wB += hist[t2];
-      if (wB===0) continue;
-      wF = total - wB;
-      if (wF===0) break;
-      sumB += t2*hist[t2];
-      var mB = sumB/wB;
-      var mF = (sum-sumB)/wF;
-      var varBetween = wB*wF*(mB-mF)*(mB-mF);
-      if (varBetween > varMax){ varMax = varBetween; threshold = t2; }
-    }
-    return threshold;
-  }
-
-  function binarizeCanvas(canvas, threshold){
-    var w = canvas.width, h = canvas.height;
-    var out = document.createElement('canvas');
-    out.width = w; out.height = h;
-    var ctx = out.getContext('2d');
-    ctx.drawImage(canvas, 0, 0);
-    var data = ctx.getImageData(0,0,w,h);
-    var d = data.data;
-    for (var i=0;i<d.length;i+=4){
-      var v = d[i] < threshold ? 0 : 255;
-      d[i]=d[i+1]=d[i+2]=v;
-    }
-    ctx.putImageData(data,0,0);
-    return out;
-  }
-
-  function contrastStretch(canvas){
-    var ctx = canvas.getContext('2d');
-    var w = canvas.width, h = canvas.height;
-    var data = ctx.getImageData(0,0,w,h);
-    var d = data.data;
-    var min=255, max=0;
-    for (var i=0;i<d.length;i+=4){ if (d[i]<min) min=d[i]; if (d[i]>max) max=d[i]; }
-    var range = Math.max(1, max-min);
-    for (var j=0;j<d.length;j+=4){
-      var v = Math.max(0, Math.min(255, ((d[j]-min)/range)*255));
-      d[j]=d[j+1]=d[j+2]=v;
-    }
-    ctx.putImageData(data,0,0);
-    return canvas;
-  }
-
-  function rotateCanvas(canvas, angleDeg){
-    var rad = angleDeg * Math.PI / 180;
-    var w = canvas.width, h = canvas.height;
-    var absCos = Math.abs(Math.cos(rad)), absSin = Math.abs(Math.sin(rad));
-    var newW = Math.round(w*absCos + h*absSin);
-    var newH = Math.round(w*absSin + h*absCos);
-    var out = document.createElement('canvas');
-    out.width = newW; out.height = newH;
-    var ctx = out.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0,0,newW,newH);
-    ctx.translate(newW/2, newH/2);
-    ctx.rotate(rad);
-    ctx.drawImage(canvas, -w/2, -h/2);
-    return out;
-  }
-
-  function projectionVariance(binCanvas){
-    var ctx = binCanvas.getContext('2d');
-    var w = binCanvas.width, h = binCanvas.height;
-    var data = ctx.getImageData(0,0,w,h).data;
-    var rowSums = new Array(h).fill(0);
-    for (var y=0; y<h; y++){
-      var sum = 0;
-      var rowStart = y*w*4;
-      for (var x=0; x<w; x++){
-        sum += (255 - data[rowStart + x*4]); // dark pixel = text
-      }
-      rowSums[y] = sum;
-    }
-    var mean = rowSums.reduce(function(a,b){return a+b;},0)/h;
-    var variance = rowSums.reduce(function(a,b){return a+(b-mean)*(b-mean);},0)/h;
-    return variance;
-  }
-
-  function findBestSkewAngle(grayCanvas){
-    // Downscale for speed
-    var scale = 300 / grayCanvas.width;
-    var small = document.createElement('canvas');
-    small.width = Math.max(50, Math.round(grayCanvas.width*scale));
-    small.height = Math.max(30, Math.round(grayCanvas.height*scale));
-    small.getContext('2d').drawImage(grayCanvas, 0, 0, small.width, small.height);
-
-    var threshold = otsuThreshold(small);
-    var bin = binarizeCanvas(small, threshold);
-
-    var bestAngle = 0, bestScore = -1;
-    for (var angle=-12; angle<=12; angle+=1.5){
-      var rotated = rotateCanvas(bin, angle);
-      var score = projectionVariance(rotated);
-      if (score > bestScore){ bestScore = score; bestAngle = angle; }
-    }
-    return bestAngle;
-  }
-
-  function isColorImage(canvas){
-    var ctx = canvas.getContext('2d');
-    var w = canvas.width, h = canvas.height;
-    var sampleW = Math.min(w, 200), sampleH = Math.min(h, 200);
-    var data = ctx.getImageData(0,0,sampleW,sampleH).data;
-    var coloredCount = 0, total = 0;
-    for (var i=0;i<data.length;i+=4*5){
-      var r=data[i], g=data[i+1], b=data[i+2];
-      var max = Math.max(r,g,b), min = Math.min(r,g,b);
-      var sat = max===0 ? 0 : (max-min)/max;
-      if (sat > 0.12) coloredCount++;
-      total++;
-    }
-    return (coloredCount/total) > 0.03;
-  }
-
-  function preprocess(rawCanvas){
-    var isColor = isColorImage(rawCanvas);
-
-    var cardFound = false;
-    var workingCanvas = rawCanvas;
-    try {
-      var warped = detectAndWarpCard(rawCanvas);
-      if (warped){
-        workingCanvas = warped;
-        cardFound = true;
-      }
-    } catch (e) {
-      // deteksi kartu gagal (mis. background terlalu ramai) -> lanjut pakai gambar asli
-    }
-
-    var gray = toGrayscaleCanvas(workingCanvas);
-
-    // Kalau kartu sudah diluruskan via perspective warp, cukup koreksi sisa
-    // kemiringan kecil saja (rentang sempit); kalau belum, cari sudut penuh.
-    var angle = cardFound ? findBestSkewAngle(gray) : findBestSkewAngle(gray);
-    var rotatedGray = Math.abs(angle) > 0.4 ? rotateCanvas(gray, angle) : gray;
-
-    var stretched = contrastStretch(rotatedGray);
-    var threshold = otsuThreshold(stretched);
-    var binary = binarizeCanvas(stretched, threshold);
-
-    return { binary:binary, grayEnhanced:stretched, isColor:isColor, angle:angle, cardFound:cardFound };
-  }
-
-  // ---------- Parsing (port dari ktp_parser.py) ----------
-
-  function fixOcrDigits(str){
-    var map = {O:'0', o:'0', I:'1', l:'1', B:'8', S:'5', Z:'2'};
-    return str.split('').map(function(ch){ return map[ch] !== undefined ? map[ch] : ch; }).join('');
-  }
-
-  function extractNik(rawText){
-    var candidates = rawText.replace(/\s+/g,'').match(/[0-9OoIlBSZ]{14,18}/g) || [];
-    var best = null;
-    for (var i=0;i<candidates.length;i++){
-      var fixed = fixOcrDigits(candidates[i]);
-      var digits = fixed.replace(/\D/g,'');
-      if (digits.length === 16) return { nik: digits, confident: true };
-      if (!best && digits.length >= 14) best = digits;
-    }
-    return { nik: best, confident: false };
-  }
-
-  function cleanLine(line){
-    return line.replace(/\s+/g,' ').trim().replace(/^[:;.\-\s]+|[:;.\-\s]+$/g,'');
-  }
-
-  function extractFieldByLabel(lines, labelVariants){
-    var pattern = new RegExp('(' + labelVariants.map(function(l){return l.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}).join('|') + ')\\s*[:\\-]?\\s*(.*)', 'i');
-    for (var i=0;i<lines.length;i++){
-      var m = lines[i].match(pattern);
-      if (m){
-        var value = cleanLine(m[2] || '');
-        if (!value && lines[i+1]) value = cleanLine(lines[i+1]);
-        return value;
-      }
-    }
-    return '';
-  }
-
-  function parseKtpText(rawText){
-    var lines = rawText.split('\n').filter(function(l){ return l.trim(); });
-    var joined = lines.join('\n');
-    var nikResult = extractNik(joined);
-
-    var result = {
-      NIK: nikResult.nik || '',
-      Nama: extractFieldByLabel(lines, ['Nama']),
-      TempatTglLahir: extractFieldByLabel(lines, ['Tempat/Tgl Lahir', 'Tempat/Tgi Lahir', 'Tempat Tgl Lahir']),
-      JenisKelamin: extractFieldByLabel(lines, ['Jenis Kelamin']),
-      GolDarah: extractFieldByLabel(lines, ['Gol. Darah', 'Gol Darah']),
-      Alamat: extractFieldByLabel(lines, ['Alamat']),
-      RtRw: extractFieldByLabel(lines, ['RT/RW']),
-      KelDesa: extractFieldByLabel(lines, ['Kel/Desa', 'Kelurahan', 'Desa']),
-      Kecamatan: extractFieldByLabel(lines, ['Kecamatan']),
-      Agama: extractFieldByLabel(lines, ['Agama']),
-      StatusPerkawinan: extractFieldByLabel(lines, ['Status Perkawinan']),
-      Pekerjaan: extractFieldByLabel(lines, ['Pekerjaan']),
-      Kewarganegaraan: extractFieldByLabel(lines, ['Kewarganegaraan']),
-      BerlakuHingga: extractFieldByLabel(lines, ['Berlaku Hingga']),
-      Provinsi: extractFieldByLabel(lines, ['PROVINSI']),
-      KabupatenKota: extractFieldByLabel(lines, ['KABUPATEN', 'KOTA'])
-    };
-
-    var values = Object.keys(result).map(function(k){ return result[k]; });
-    var filled = values.filter(function(v){ return v; }).length;
-    var fillRatio = filled / values.length;
-
-    var reasons = [];
-    if (!nikResult.confident) reasons.push('NIK bukan 16 digit / meragukan');
-    if (!result.Nama) reasons.push('Nama tidak terbaca');
-    if (fillRatio < 0.5) reasons.push('Banyak field kosong (kualitas scan rendah)');
-
-    result._confidence = Math.round(fillRatio*1000)/10;
-    result._needsReview = reasons.length > 0;
-    result._notes = reasons.join('; ');
-    return result;
-  }
-
-  // ---------- OCR pipeline ----------
-
-  function getWorker(){
-    if (worker) return worker;
-    worker = Tesseract.createWorker('ind+eng', 1, {
-      logger: function(){}
-    });
-    return worker;
-  }
-
-  function processItem(item){
-    setStatus(item, 'processing', 'memproses...');
-    return ensureCv()
-      .then(function(){ return loadImageToCanvas(item.url); })
-      .then(function(rawCanvas){
-        var pre = preprocess(rawCanvas);
-        item.isColor = pre.isColor;
-        item.deskewAngle = Math.round(pre.angle*10)/10;
-        item.cardFound = pre.cardFound;
-        return getWorker().then(function(w){
-          return w.recognize(pre.binary).then(function(res){
-            var text = res.data.text || '';
-            if (text.trim().length < 20){
-              return w.recognize(pre.grayEnhanced).then(function(res2){
-                return (res2.data.text || '').trim().length > text.trim().length ? res2.data.text : text;
-              });
+            function showPreview(url, label) {
+                previewImg.src = url;
+                previewCaption.textContent = label || '';
+                previewOverlay.classList.add('active');
             }
-            return text;
-          });
-        });
-      })
-      .then(function(rawText){
-        var parsed = parseKtpText(rawText);
-        item.result = parsed;
-        addResultRow(item);
-        if (parsed._needsReview){
-          setStatus(item, 'review', 'perlu dicek');
-        } else {
-          setStatus(item, 'ok', 'selesai');
-        }
-      })
-      .catch(function(err){
-        item.result = { _needsReview:true, _notes:'Gagal diproses: ' + err.message };
-        setStatus(item, 'error', 'gagal');
-      })
-      .then(function(){ updateStats(); });
-  }
 
-  function addResultRow(item){
-    emptyMsg.style.display = 'none';
-    var r = item.result;
-    var tr = document.createElement('tr');
-    if (r._needsReview) tr.className = 'review';
-    tr.innerHTML =
-      '<td>' + escapeHtml(item.file.name) + '</td>' +
-      '<td class="nik">' + escapeHtml(r.NIK || '-') + '</td>' +
-      '<td>' + escapeHtml(r.Nama || '-') + '</td>' +
-      '<td>' + escapeHtml(r.TempatTglLahir || '-') + '</td>' +
-      '<td>' + escapeHtml(r.JenisKelamin || '-') + '</td>' +
-      '<td>' + escapeHtml(r.Alamat || '-') + '</td>' +
-      '<td>' + escapeHtml(r.Kecamatan || '-') + '</td>' +
-      '<td>' + (r._needsReview ? 'YA' : 'TIDAK') + '</td>' +
-      '<td>' + (item.cardFound ? 'Ya' : 'Tidak') + '</td>';
-    resultsBody.appendChild(tr);
-  }
+            // drag-drop
+            ['dragenter', 'dragover'].forEach(function(ev) {
+                dropzone.addEventListener(ev, function(e) { e.preventDefault();
+                    dropzone.classList.add('drag'); });
+            });
+            ['dragleave', 'drop'].forEach(function(ev) {
+                dropzone.addEventListener(ev, function(e) { e.preventDefault();
+                    dropzone.classList.remove('drag'); });
+            });
+            dropzone.addEventListener('drop', function(e) {
+                var files = Array.prototype.slice.call(e.dataTransfer.files).filter(function(f) { return f.type
+                        .indexOf('image/') === 0; });
+                addFiles(files);
+            });
+            fileInput.addEventListener('change', function(e) {
+                addFiles(Array.prototype.slice.call(e.target.files));
+                fileInput.value = '';
+            });
 
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
-    });
-  }
+            function addFiles(files) {
+                files.forEach(function(file) {
+                    var id = 'f' + Date.now() + Math.random().toString(36).slice(2, 7);
+                    var url = URL.createObjectURL(file);
+                    var item = { id: id, file: file, url: url, status: 'queued', result: null, processedCanvas: null,
+                        deskewAngle: 0, cardFound: false, isColor: false };
+                    items.push(item);
+                    renderCard(item);
+                });
+                updateStats();
+                btnProcess.disabled = items.length === 0;
+            }
 
-  var engineStatusEl = document.getElementById('engineStatus');
-  ensureCv().then(function(){
-    engineStatusEl.textContent = 'Mesin siap. Unggah foto KTP lalu klik "Mulai scan semua".';
-    engineStatusEl.style.color = 'var(--green)';
-    engineStatusEl.style.borderColor = '#1F5C48';
-  }).catch(function(){
-    engineStatusEl.textContent = 'Mesin deteksi kartu gagal dimuat — proses tetap jalan tanpa auto-crop.';
-    engineStatusEl.style.color = 'var(--amber)';
-  });
+            function renderCard(item) {
+                var card = document.createElement('div');
+                card.className = 'card';
+                card.id = 'card-' + item.id;
+                card.innerHTML =
+                    '<div class="scanline"></div>' +
+                    '<div class="thumb-wrap">' +
+                    '<img class="thumb" src="' + item.url + '" loading="lazy">' +
+                    '</div>' +
+                    '<div class="meta">' +
+                    '<div class="fname" title="' + item.file.name + '">' + item.file.name + '</div>' +
+                    '<span class="status-pill queued" id="pill-' + item.id + '">menunggu</span>' +
+                    '</div>';
+                grid.appendChild(card);
+            }
 
-  btnProcess.addEventListener('click', function(){
-    btnProcess.disabled = true;
-    var queue = items.filter(function(i){ return i.status === 'queued'; });
-    var chain = Promise.resolve();
-    queue.forEach(function(item){
-      chain = chain.then(function(){ return processItem(item); });
-    });
-    chain.then(function(){ btnProcess.disabled = false; });
-  });
+            function setStatus(item, status, label) {
+                item.status = status;
+                var card = document.getElementById('card-' + item.id);
+                var pill = document.getElementById('pill-' + item.id);
+                if (card) {
+                    card.classList.remove('processing');
+                    if (status === 'processing') card.classList.add('processing');
+                }
+                if (pill) {
+                    pill.className = 'status-pill ' + status;
+                    pill.textContent = label;
+                }
+            }
 
-  btnExport.addEventListener('click', function(){
-    var rows = items.filter(function(i){ return i.result; }).map(function(i, idx){
-      var r = i.result;
-      return {
-        'No': idx+1,
-        'Nama File': i.file.name,
-        'NIK': r.NIK || '',
-        'Nama': r.Nama || '',
-        'Tempat/Tgl Lahir': r.TempatTglLahir || '',
-        'Jenis Kelamin': r.JenisKelamin || '',
-        'Gol. Darah': r.GolDarah || '',
-        'Alamat': r.Alamat || '',
-        'RT/RW': r.RtRw || '',
-        'Kel/Desa': r.KelDesa || '',
-        'Kecamatan': r.Kecamatan || '',
-        'Agama': r.Agama || '',
-        'Status Perkawinan': r.StatusPerkawinan || '',
-        'Pekerjaan': r.Pekerjaan || '',
-        'Kewarganegaraan': r.Kewarganegaraan || '',
-        'Berlaku Hingga': r.BerlakuHingga || '',
-        'Provinsi': r.Provinsi || '',
-        'Kabupaten/Kota': r.KabupatenKota || '',
-        'Tipe Gambar': i.isColor ? 'Berwarna' : 'Hitam-Putih',
-        'Sudut Koreksi (deskew)': i.deskewAngle || 0,
-        'Skor Kelengkapan (%)': r._confidence || 0,
-        'Perlu Cek Manual': r._needsReview ? 'YA' : 'TIDAK',
-        'Kartu Terdeteksi (auto-crop)': i.cardFound ? 'Ya' : 'Tidak',
-        'Catatan': r._notes || ''
-      };
-    });
-    var ws = XLSX.utils.json_to_sheet(rows);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Hasil Scan KTP');
-    var stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'').replace('-','');
-    XLSX.writeFile(wb, 'hasil_ktp_' + stamp + '.xlsx');
-  });
+            function updateStats() {
+                statTotal.textContent = items.length;
+                var done = items.filter(function(i) { return i.status === 'ok' || i.status === 'review' || i.status ===
+                        'error'; });
+                statDone.textContent = done.length;
+                statReview.textContent = items.filter(function(i) { return i.status === 'review' || i.status ===
+                        'error'; }).length;
+                btnExport.disabled = items.filter(function(i) { return i.result; }).length === 0;
+            }
 
-})();
-</script>
+            // ---------- OpenCV.js loading ----------
+            var cvReadyPromise = null;
+
+            function ensureCv() {
+                if (cvReadyPromise) return cvReadyPromise;
+                cvReadyPromise = new Promise(function(resolve) {
+                    function check() {
+                        if (typeof cv !== 'undefined' && cv && typeof cv.then === 'function') {
+                            cv.then(function(resolved) {
+                                window.cv = resolved;
+                                cvReady = true;
+                                resolve();
+                            });
+                        } else if (typeof cv !== 'undefined' && cv && cv.Mat) {
+                            cvReady = true;
+                            resolve();
+                        } else if (typeof cv !== 'undefined' && cv) {
+                            cv['onRuntimeInitialized'] = function() {
+                                cvReady = true;
+                                resolve();
+                            };
+                        } else {
+                            setTimeout(check, 150);
+                        }
+                    }
+                    check();
+                });
+                return cvReadyPromise;
+            }
+
+            // ---------- Enhanced card detection + perspective correction ----------
+            function orderCorners(pts) {
+                pts = pts.slice().sort(function(a, b) { return a.y - b.y; });
+                var top = pts.slice(0, 2).sort(function(a, b) { return a.x - b.x; });
+                var bottom = pts.slice(2, 4).sort(function(a, b) { return a.x - b.x; });
+                return { tl: top[0], tr: top[1], bl: bottom[0], br: bottom[1] };
+            }
+
+            function detectAndWarpCard(canvas) {
+                if (!cvReady) return null;
+                try {
+                    var src = cv.imread(canvas);
+                    var maxDim = 900;
+                    var scale = Math.min(1, maxDim / Math.max(src.rows, src.cols));
+                    var resized = new cv.Mat();
+                    cv.resize(src, resized, new cv.Size(Math.round(src.cols * scale), Math.round(src.rows * scale)));
+
+                    var gray = new cv.Mat();
+                    cv.cvtColor(resized, gray, cv.COLOR_RGBA2GRAY);
+                    var blurred = new cv.Mat();
+                    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+                    var edged = new cv.Mat();
+                    cv.Canny(blurred, edged, 30, 100);
+                    var kernel = cv.Mat.ones(3, 3, cv.CV_8U);
+                    var dilated = new cv.Mat();
+                    cv.dilate(edged, dilated, kernel, new cv.Point(-1, -1), 2);
+
+                    var contours = new cv.MatVector();
+                    var hierarchy = new cv.Mat();
+                    cv.findContours(dilated, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+                    var bestQuad = null;
+                    var bestArea = 0;
+                    var imgArea = resized.rows * resized.cols;
+
+                    for (var i = 0; i < contours.size(); i++) {
+                        var cnt = contours.get(i);
+                        var peri = cv.arcLength(cnt, true);
+                        var approx = new cv.Mat();
+                        cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+                        if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                            var area = Math.abs(cv.contourArea(approx));
+                            if (area > bestArea && area > imgArea * 0.12) {
+                                bestArea = area;
+                                if (bestQuad) bestQuad.delete();
+                                bestQuad = approx;
+                            } else {
+                                approx.delete();
+                            }
+                        } else {
+                            approx.delete();
+                        }
+                        cnt.delete();
+                    }
+
+                    var outCanvas = null;
+                    if (bestQuad) {
+                        var pts = [];
+                        for (var j = 0; j < 4; j++) {
+                            pts.push({
+                                x: bestQuad.data32S[j * 2] / scale,
+                                y: bestQuad.data32S[j * 2 + 1] / scale
+                            });
+                        }
+                        var ordered = orderCorners(pts);
+                        var outW = 1013,
+                            outH = 638;
+                        var srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                            ordered.tl.x, ordered.tl.y,
+                            ordered.tr.x, ordered.tr.y,
+                            ordered.br.x, ordered.br.y,
+                            ordered.bl.x, ordered.bl.y
+                        ]);
+                        var dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                            0, 0, outW, 0, outW, outH, 0, outH
+                        ]);
+                        var M = cv.getPerspectiveTransform(srcTri, dstTri);
+                        var warped = new cv.Mat();
+                        cv.warpPerspective(src, warped, M, new cv.Size(outW, outH));
+                        outCanvas = document.createElement('canvas');
+                        outCanvas.width = outW;
+                        outCanvas.height = outH;
+                        cv.imshow(outCanvas, warped);
+                        srcTri.delete();
+                        dstTri.delete();
+                        M.delete();
+                        warped.delete();
+                        bestQuad.delete();
+                    }
+
+                    src.delete();
+                    resized.delete();
+                    gray.delete();
+                    blurred.delete();
+                    edged.delete();
+                    dilated.delete();
+                    kernel.delete();
+                    contours.delete();
+                    hierarchy.delete();
+
+                    return outCanvas;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // ---------- Enhanced preprocessing ----------
+            function loadImageToCanvas(url) {
+                return new Promise(function(resolve) {
+                    var img = new Image();
+                    img.onload = function() {
+                        var canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas);
+                    };
+                    img.onerror = function() { resolve(null); };
+                    img.src = url;
+                });
+            }
+
+            function toGrayscaleCanvas(srcCanvas) {
+                var w = srcCanvas.width,
+                    h = srcCanvas.height;
+                var canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(srcCanvas, 0, 0);
+                var data = ctx.getImageData(0, 0, w, h);
+                var d = data.data;
+                for (var i = 0; i < d.length; i += 4) {
+                    var v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+                    d[i] = d[i + 1] = d[i + 2] = v;
+                }
+                ctx.putImageData(data, 0, 0);
+                return canvas;
+            }
+
+            function contrastStretch(canvas) {
+                var ctx = canvas.getContext('2d');
+                var w = canvas.width,
+                    h = canvas.height;
+                var data = ctx.getImageData(0, 0, w, h);
+                var d = data.data;
+                var min = 255,
+                    max = 0;
+                for (var i = 0; i < d.length; i += 4) {
+                    if (d[i] < min) min = d[i];
+                    if (d[i] > max) max = d[i];
+                }
+                var range = Math.max(1, max - min);
+                for (var j = 0; j < d.length; j += 4) {
+                    var v = Math.max(0, Math.min(255, ((d[j] - min) / range) * 255));
+                    d[j] = d[j + 1] = d[j + 2] = v;
+                }
+                ctx.putImageData(data, 0, 0);
+                return canvas;
+            }
+
+            function rotateCanvas(canvas, angleDeg) {
+                var rad = angleDeg * Math.PI / 180;
+                var w = canvas.width,
+                    h = canvas.height;
+                var absCos = Math.abs(Math.cos(rad)),
+                    absSin = Math.abs(Math.sin(rad));
+                var newW = Math.round(w * absCos + h * absSin);
+                var newH = Math.round(w * absSin + h * absCos);
+                var out = document.createElement('canvas');
+                out.width = Math.max(1, newW);
+                out.height = Math.max(1, newH);
+                var ctx = out.getContext('2d');
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, out.width, out.height);
+                ctx.translate(out.width / 2, out.height / 2);
+                ctx.rotate(rad);
+                ctx.drawImage(canvas, -w / 2, -h / 2);
+                return out;
+            }
+
+            function projectionVariance(binCanvas) {
+                var ctx = binCanvas.getContext('2d');
+                var w = binCanvas.width,
+                    h = binCanvas.height;
+                var data = ctx.getImageData(0, 0, w, h).data;
+                var rowSums = new Array(h).fill(0);
+                for (var y = 0; y < h; y++) {
+                    var sum = 0;
+                    var rowStart = y * w * 4;
+                    for (var x = 0; x < w; x++) {
+                        sum += (255 - data[rowStart + x * 4]);
+                    }
+                    rowSums[y] = sum;
+                }
+                var mean = rowSums.reduce(function(a, b) { return a + b; }, 0) / h;
+                var variance = rowSums.reduce(function(a, b) { return a + (b - mean) * (b - mean); }, 0) / h;
+                return variance;
+            }
+
+            function findBestSkewAngle(grayCanvas) {
+                var scale = 300 / Math.min(grayCanvas.width, grayCanvas.height);
+                scale = Math.min(1, Math.max(0.2, scale));
+                var small = document.createElement('canvas');
+                small.width = Math.max(80, Math.round(grayCanvas.width * scale));
+                small.height = Math.max(60, Math.round(grayCanvas.height * scale));
+                small.getContext('2d').drawImage(grayCanvas, 0, 0, small.width, small.height);
+
+                var threshold = otsuThreshold(small);
+                var bin = binarizeCanvas(small, threshold);
+
+                var bestAngle = 0,
+                    bestScore = -1;
+                for (var angle = -15; angle <= 15; angle += 1.0) {
+                    var rotated = rotateCanvas(bin, angle);
+                    var score = projectionVariance(rotated);
+                    if (score > bestScore) { bestScore = score;
+                        bestAngle = angle; }
+                }
+                return bestAngle;
+            }
+
+            function otsuThreshold(canvas) {
+                var ctx = canvas.getContext('2d');
+                var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                var hist = new Array(256).fill(0);
+                var total = 0;
+                for (var i = 0; i < data.length; i += 4) { hist[data[i] | 0]++; total++; }
+                var sum = 0;
+                for (var t = 0; t < 256; t++) sum += t * hist[t];
+                var sumB = 0,
+                    wB = 0,
+                    wF = 0,
+                    varMax = 0,
+                    threshold = 128;
+                for (var t2 = 0; t2 < 256; t2++) {
+                    wB += hist[t2];
+                    if (wB === 0) continue;
+                    wF = total - wB;
+                    if (wF === 0) break;
+                    sumB += t2 * hist[t2];
+                    var mB = sumB / wB;
+                    var mF = (sum - sumB) / wF;
+                    var varBetween = wB * wF * (mB - mF) * (mB - mF);
+                    if (varBetween > varMax) { varMax = varBetween;
+                        threshold = t2; }
+                }
+                return threshold;
+            }
+
+            function binarizeCanvas(canvas, threshold) {
+                var w = canvas.width,
+                    h = canvas.height;
+                var out = document.createElement('canvas');
+                out.width = w;
+                out.height = h;
+                var ctx = out.getContext('2d');
+                ctx.drawImage(canvas, 0, 0);
+                var data = ctx.getImageData(0, 0, w, h);
+                var d = data.data;
+                for (var i = 0; i < d.length; i += 4) {
+                    var v = d[i] < threshold ? 0 : 255;
+                    d[i] = d[i + 1] = d[i + 2] = v;
+                }
+                ctx.putImageData(data, 0, 0);
+                return out;
+            }
+
+            // Adaptive thresholding (Gaussian) — better for uneven lighting
+            function adaptiveThresholdCanvas(grayCanvas) {
+                if (!cvReady) return null;
+                try {
+                    var src = cv.imread(grayCanvas);
+                    var gray = new cv.Mat();
+                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                    var dst = new cv.Mat();
+                    cv.adaptiveThreshold(gray, dst, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 15, 8);
+                    var out = document.createElement('canvas');
+                    out.width = grayCanvas.width;
+                    out.height = grayCanvas.height;
+                    cv.imshow(out, dst);
+                    src.delete();
+                    gray.delete();
+                    dst.delete();
+                    return out;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // Morphological cleanup
+            function morphCleanup(binCanvas) {
+                if (!cvReady) return binCanvas;
+                try {
+                    var src = cv.imread(binCanvas);
+                    var gray = new cv.Mat();
+                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                    var kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 2));
+                    var morph = new cv.Mat();
+                    cv.morphologyEx(gray, morph, cv.MORPH_CLOSE, kernel);
+                    var out = document.createElement('canvas');
+                    out.width = binCanvas.width;
+                    out.height = binCanvas.height;
+                    cv.imshow(out, morph);
+                    src.delete();
+                    gray.delete();
+                    kernel.delete();
+                    morph.delete();
+                    return out;
+                } catch (e) {
+                    return binCanvas;
+                }
+            }
+
+            function isColorImage(canvas) {
+                var ctx = canvas.getContext('2d');
+                var w = canvas.width,
+                    h = canvas.height;
+                var sampleW = Math.min(w, 200),
+                    sampleH = Math.min(h, 200);
+                var data = ctx.getImageData(0, 0, sampleW, sampleH).data;
+                var coloredCount = 0,
+                    total = 0;
+                for (var i = 0; i < data.length; i += 4 * 5) {
+                    var r = data[i],
+                        g = data[i + 1],
+                        b = data[i + 2];
+                    var max = Math.max(r, g, b),
+                        min = Math.min(r, g, b);
+                    var sat = max === 0 ? 0 : (max - min) / max;
+                    if (sat > 0.12) coloredCount++;
+                    total++;
+                }
+                return (coloredCount / total) > 0.03;
+            }
+
+            // ---------- Enhanced preprocessing pipeline ----------
+            function preprocess(rawCanvas) {
+                var isColor = isColorImage(rawCanvas);
+
+                // 1. Try card detection + perspective warp
+                var cardFound = false;
+                var workingCanvas = rawCanvas;
+                try {
+                    var warped = detectAndWarpCard(rawCanvas);
+                    if (warped) {
+                        workingCanvas = warped;
+                        cardFound = true;
+                    }
+                } catch (e) { /* fall through */ }
+
+                // 2. Grayscale
+                var gray = toGrayscaleCanvas(workingCanvas);
+
+                // 3. Deskew (improved)
+                var angle = findBestSkewAngle(gray);
+                var rotatedGray = Math.abs(angle) > 0.3 ? rotateCanvas(gray, angle) : gray;
+
+                // 4. Contrast stretch
+                var stretched = contrastStretch(rotatedGray);
+
+                // 5. Try adaptive threshold first (better for uneven lighting)
+                var binary = adaptiveThresholdCanvas(stretched);
+                if (!binary) {
+                    // fallback to Otsu
+                    var th = otsuThreshold(stretched);
+                    binary = binarizeCanvas(stretched, th);
+                }
+
+                // 6. Morphological cleanup
+                binary = morphCleanup(binary);
+
+                return {
+                    binary: binary,
+                    grayEnhanced: stretched,
+                    isColor: isColor,
+                    angle: Math.round(angle * 10) / 10,
+                    cardFound: cardFound
+                };
+            }
+
+            // ---------- Enhanced parsing ----------
+            function fixOcrDigits(str) {
+                var map = { 'O': '0', 'o': '0', 'I': '1', 'l': '1', 'B': '8', 'S': '5', 'Z': '2', 'G': '6' };
+                return str.split('').map(function(ch) { return map[ch] !== undefined ? map[ch] : ch; }).join('');
+            }
+
+            function extractNik(rawText) {
+                var candidates = rawText.replace(/\s+/g, '').match(/[0-9OoIlBSZ]{14,18}/g) || [];
+                var best = null;
+                for (var i = 0; i < candidates.length; i++) {
+                    var fixed = fixOcrDigits(candidates[i]);
+                    var digits = fixed.replace(/\D/g, '');
+                    if (digits.length === 16) return { nik: digits, confident: true };
+                    if (!best && digits.length >= 14) best = digits;
+                }
+                return { nik: best, confident: false };
+            }
+
+            function cleanLine(line) {
+                return line.replace(/\s+/g, ' ').trim().replace(/^[:;.\-\s]+|[:;.\-\s]+$/g, '');
+            }
+
+            function extractFieldByLabel(lines, labelVariants, flexible) {
+                var patterns = labelVariants.map(function(l) {
+                    return new RegExp('(' + l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')\\s*[:\\-]?\\s*(.*)', 'i');
+                });
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    for (var p = 0; p < patterns.length; p++) {
+                        var m = line.match(patterns[p]);
+                        if (m) {
+                            var value = cleanLine(m[2] || '');
+                            if (!value && lines[i + 1]) value = cleanLine(lines[i + 1]);
+                            if (value) return value;
+                        }
+                    }
+                }
+                // Fallback: search in whole text
+                if (flexible) {
+                    var joined = lines.join(' ');
+                    for (var p2 = 0; p2 < patterns.length; p2++) {
+                        var m2 = joined.match(patterns[p2]);
+                        if (m2) {
+                            var v2 = cleanLine(m2[2] || '');
+                            if (v2) return v2;
+                        }
+                    }
+                }
+                return '';
+            }
+
+            function parseKtpText(rawText) {
+                var lines = rawText.split('\n').filter(function(l) { return l.trim(); });
+                var joined = lines.join('\n');
+                var nikResult = extractNik(joined);
+
+                var result = {
+                    NIK: nikResult.nik || '',
+                    Nama: extractFieldByLabel(lines, ['Nama'], true),
+                    TempatTglLahir: extractFieldByLabel(lines, ['Tempat/Tgl Lahir', 'Tempat/Tgi Lahir', 'Tempat Tgl Lahir',
+                        'Tempat/Tanggal Lahir'
+                    ], true),
+                    JenisKelamin: extractFieldByLabel(lines, ['Jenis Kelamin', 'Jenis kelamin'], true),
+                    GolDarah: extractFieldByLabel(lines, ['Gol. Darah', 'Gol Darah'], true),
+                    Alamat: extractFieldByLabel(lines, ['Alamat'], true),
+                    RtRw: extractFieldByLabel(lines, ['RT/RW', 'RT / RW'], true),
+                    KelDesa: extractFieldByLabel(lines, ['Kel/Desa', 'Kelurahan', 'Desa', 'KelDesa'], true),
+                    Kecamatan: extractFieldByLabel(lines, ['Kecamatan'], true),
+                    Agama: extractFieldByLabel(lines, ['Agama'], true),
+                    StatusPerkawinan: extractFieldByLabel(lines, ['Status Perkawinan', 'Status Kawin'], true),
+                    Pekerjaan: extractFieldByLabel(lines, ['Pekerjaan'], true),
+                    Kewarganegaraan: extractFieldByLabel(lines, ['Kewarganegaraan'], true),
+                    BerlakuHingga: extractFieldByLabel(lines, ['Berlaku Hingga', 'Berlaku sampai'], true),
+                    Provinsi: extractFieldByLabel(lines, ['PROVINSI', 'Provinsi'], true),
+                    KabupatenKota: extractFieldByLabel(lines, ['KABUPATEN', 'KOTA', 'Kabupaten', 'Kota'], true)
+                };
+
+                // Fix Jenis Kelamin + Gol Darah on same line
+                if (result.JenisKelamin && result.JenisKelamin.includes('Gol')) {
+                    var parts = result.JenisKelamin.split(/\s+Gol\.?\s*Darah\s*/i);
+                    if (parts.length >= 2) {
+                        result.JenisKelamin = cleanLine(parts[0]);
+                        if (!result.GolDarah) result.GolDarah = cleanLine(parts[1]);
+                    }
+                }
+
+                // If JenisKelamin is empty but we have something in the line with "PEREMPUAN" or "LAKI-LAKI"
+                if (!result.JenisKelamin) {
+                    for (var i = 0; i < lines.length; i++) {
+                        var l = lines[i];
+                        if (/PEREMPUAN|LAKI-LAKI|LAKI LAKI/i.test(l)) {
+                            var m = l.match(/(PEREMPUAN|LAKI-LAKI|LAKI LAKI)/i);
+                            if (m) result.JenisKelamin = m[0].toUpperCase();
+                            break;
+                        }
+                    }
+                }
+
+                var values = Object.keys(result).map(function(k) { return result[k]; });
+                var filled = values.filter(function(v) { return v && v.length > 0; }).length;
+                var fillRatio = filled / values.length;
+
+                var reasons = [];
+                if (!nikResult.confident) reasons.push('NIK bukan 16 digit / meragukan');
+                if (!result.Nama) reasons.push('Nama tidak terbaca');
+                if (fillRatio < 0.4) reasons.push('Banyak field kosong (kualitas scan rendah)');
+
+                result._confidence = Math.round(fillRatio * 1000) / 10;
+                result._needsReview = reasons.length > 0;
+                result._notes = reasons.join('; ');
+                return result;
+            }
+
+            // ---------- OCR pipeline ----------
+            function getWorker() {
+                if (worker) return worker;
+                worker = Tesseract.createWorker('ind+eng', 1, {
+                    logger: function() {}
+                });
+                // Set more aggressive PSM for document text
+                worker.then(function(w) {
+                    return w.setParameters({
+                        'tessedit_pageseg_mode': '4', // single column of text
+                        'tessedit_ocr_engine_mode': '3', // LSTM only
+                    });
+                });
+                return worker;
+            }
+
+            function processItem(item) {
+                setStatus(item, 'processing', 'memproses...');
+                return ensureCv()
+                    .then(function() {
+                        return loadImageToCanvas(item.url);
+                    })
+                    .then(function(rawCanvas) {
+                        if (!rawCanvas) throw new Error('Gagal memuat gambar');
+                        var pre = preprocess(rawCanvas);
+                        item.isColor = pre.isColor;
+                        item.deskewAngle = pre.angle;
+                        item.cardFound = pre.cardFound;
+                        item.processedCanvas = pre.binary;
+                        return getWorker().then(function(w) {
+                            // Try binary first
+                            return w.recognize(pre.binary).then(function(res) {
+                                var text = res.data.text || '';
+                                if (text.trim().length < 30) {
+                                    // Fallback to gray enhanced
+                                    return w.recognize(pre.grayEnhanced).then(function(res2) {
+                                        var t2 = res2.data.text || '';
+                                        return t2.trim().length > text.trim().length ? t2 : text;
+                                    });
+                                }
+                                return text;
+                            });
+                        });
+                    })
+                    .then(function(rawText) {
+                        var parsed = parseKtpText(rawText);
+                        item.result = parsed;
+                        addResultRow(item);
+                        if (parsed._needsReview) {
+                            setStatus(item, 'review', 'perlu dicek');
+                        } else {
+                            setStatus(item, 'ok', 'selesai');
+                        }
+                    })
+                    .catch(function(err) {
+                        item.result = { _needsReview: true, _notes: 'Gagal diproses: ' + err.message };
+                        setStatus(item, 'error', 'gagal');
+                    })
+                    .then(function() { updateStats(); });
+            }
+
+            function addResultRow(item) {
+                emptyMsg.style.display = 'none';
+                var r = item.result;
+                var tr = document.createElement('tr');
+                if (r._needsReview) tr.className = 'review';
+                tr.innerHTML =
+                    '<td>' + escapeHtml(item.file.name) + '</td>' +
+                    '<td class="nik">' + escapeHtml(r.NIK || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.Nama || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.TempatTglLahir || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.JenisKelamin || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.Alamat || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.Kecamatan || '-') + '</td>' +
+                    '<td>' + (r._needsReview ? 'YA' : 'TIDAK') + '</td>' +
+                    '<td>' + (item.cardFound ? 'Ya' : 'Tidak') + '</td>';
+                resultsBody.appendChild(tr);
+            }
+
+            function escapeHtml(s) {
+                return String(s).replace(/[&<>"']/g, function(c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } [c];
+                });
+            }
+
+            // ---------- Init engine ----------
+            ensureCv().then(function() {
+                engineStatusEl.textContent = 'Mesin siap. Unggah foto KTP lalu klik "Mulai scan semua".';
+                engineStatusEl.style.color = 'var(--green)';
+                engineStatusEl.style.borderColor = '#1F5C48';
+            }).catch(function() {
+                engineStatusEl.textContent = 'Mesin deteksi kartu gagal dimuat — proses tetap jalan tanpa auto-crop.';
+                engineStatusEl.style.color = 'var(--amber)';
+            });
+
+            btnProcess.addEventListener('click', function() {
+                btnProcess.disabled = true;
+                var queue = items.filter(function(i) { return i.status === 'queued'; });
+                var chain = Promise.resolve();
+                queue.forEach(function(item) {
+                    chain = chain.then(function() { return processItem(item); });
+                });
+                chain.then(function() { btnProcess.disabled = false; });
+            });
+
+            btnExport.addEventListener('click', function() {
+                var rows = items.filter(function(i) { return i.result; }).map(function(i, idx) {
+                    var r = i.result;
+                    return {
+                        'No': idx + 1,
+                        'Nama File': i.file.name,
+                        'NIK': r.NIK || '',
+                        'Nama': r.Nama || '',
+                        'Tempat/Tgl Lahir': r.TempatTglLahir || '',
+                        'Jenis Kelamin': r.JenisKelamin || '',
+                        'Gol. Darah': r.GolDarah || '',
+                        'Alamat': r.Alamat || '',
+                        'RT/RW': r.RtRw || '',
+                        'Kel/Desa': r.KelDesa || '',
+                        'Kecamatan': r.Kecamatan || '',
+                        'Agama': r.Agama || '',
+                        'Status Perkawinan': r.StatusPerkawinan || '',
+                        'Pekerjaan': r.Pekerjaan || '',
+                        'Kewarganegaraan': r.Kewarganegaraan || '',
+                        'Berlaku Hingga': r.BerlakuHingga || '',
+                        'Provinsi': r.Provinsi || '',
+                        'Kabupaten/Kota': r.KabupatenKota || '',
+                        'Tipe Gambar': i.isColor ? 'Berwarna' : 'Hitam-Putih',
+                        'Sudut Koreksi (deskew)': i.deskewAngle || 0,
+                        'Skor Kelengkapan (%)': r._confidence || 0,
+                        'Perlu Cek Manual': r._needsReview ? 'YA' : 'TIDAK',
+                        'Kartu Terdeteksi (auto-crop)': i.cardFound ? 'Ya' : 'Tidak',
+                        'Catatan': r._notes || ''
+                    };
+                });
+                var ws = XLSX.utils.json_to_sheet(rows);
+                // Set column widths
+                ws['!cols'] = [
+                    { wch: 8 }, { wch: 22 }, { wch: 18 }, { wch: 24 }, { wch: 22 },
+                    { wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 18 },
+                    { wch: 18 }, { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 18 },
+                    { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 14 }, { wch: 16 },
+                    { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 20 }
+                ];
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Hasil Scan KTP');
+                var stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '').replace('-', '');
+                XLSX.writeFile(wb, 'hasil_ktp_' + stamp + '.xlsx');
+            });
+
+        })();
+    </script>
 </body>
 </html>
